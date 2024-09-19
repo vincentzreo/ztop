@@ -36,7 +36,7 @@ jobs:
       # Label used to access the service container
       postgres:
         # Docker Hub image
-        image: hub.atomgit.com/library/postgres:15-alpine3.17
+        image: postgres:14
         # Environment variables scoped only for the `postgres` element
         env:
           POSTGRES_USER: postgres
@@ -45,7 +45,7 @@ jobs:
         # When you map ports using the ports keyword, GitHub uses the --publish command to publish the container’s ports to the Docker host
         # Opens tcp port 5432 on the host and service container
         ports:
-          - 5433:5432
+          - 5432:5432
     steps:
       # Downloads a copy of the code in your repository before running CI tests
       - name: Check out repository code
@@ -58,14 +58,13 @@ jobs:
       # It also takes care of caching intermediate build artifacts.
       - name: Install the Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
-      
+
       - name: Install sqlx-cli
         run: cargo install sqlx-cli
           --version=${{ env.SQLX_VERSION }}
           --features ${{ env.SQLX_FEATURES }}
           --no-default-features
           --locked
-      
       - name: Create app user in Postgres
         run: |
           sudo apt-get install postgresql-client
@@ -83,6 +82,9 @@ jobs:
 
       - name: Run tests
         run: cargo test
+
+      - name: Check that queries are fresh
+        run: cargo sqlx prepare --workspace --check -- --all-targets
 
   # `fmt` container job
   fmt:
@@ -130,7 +132,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
         ports:
-          - 5433:5432
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - name: Install the Rust toolchain

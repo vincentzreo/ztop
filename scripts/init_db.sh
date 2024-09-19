@@ -12,7 +12,7 @@ exit 1
 fi
 
 # Check if a custom parameter has been set, otherwise use default values
-DB_PORT="${POSTGRES_PORT:=5433}"
+DB_PORT="${POSTGRES_PORT:=5432}"
 SUPERUSER="${SUPERUSER:=postgres}"
 SUPERUSER_PWD="${SUPERUSER_PWD:=postgres}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:=hub.atomgit.com/library/postgres:15-alpine3.17}"
