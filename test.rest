@@ -1,0 +1,4 @@
+
+### GET
+
+GET http://localhost:8000/health_check
