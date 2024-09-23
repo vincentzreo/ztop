@@ -6,7 +6,7 @@ pub struct Settings {
     pub application_port: u16,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseSettings {
     pub username: String,
     pub password: String,
