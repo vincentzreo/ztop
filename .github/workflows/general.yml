@@ -75,6 +75,8 @@ jobs:
           GRANT_QUERY="ALTER USER ${APP_USER} CREATEDB;"
           PGPASSWORD="password" psql -U "postgres" -h "localhost" -c "${GRANT_QUERY}"
 
+      - name: Make init_db.sh executable
+        run: chmod +x ./scripts/init_db.sh
       - name: Migrate database
         run: |
           SKIP_DOCKER=true ./scripts/init_db.sh
@@ -151,6 +153,8 @@ jobs:
           # Grant create db privileges to the app user
           GRANT_QUERY="ALTER USER ${APP_USER} CREATEDB;"
           PGPASSWORD="password" psql -U "postgres" -h "localhost" -c "${GRANT_QUERY}"
+      - name: Make init_db.sh executable
+        run: chmod +x ./scripts/init_db.sh
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
       - name: Install cargo-llvm-cov
