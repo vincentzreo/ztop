@@ -69,11 +69,8 @@ fi
 DATABASE_URL=postgres://${APP_USER}:${APP_USER_PWD}@localhost:${DB_PORT}/${APP_DB_NAME}
 export DATABASE_URL
 # Run sqlx prepare to update the query cache
-sqlx prepare
+
 sqlx database create
 sqlx migrate run
 
 >&2 echo "Postgres has been migrated, ready to go!"
-
-
-unset SQLX_OFFLINE
