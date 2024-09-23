@@ -72,3 +72,6 @@ sqlx database create
 sqlx migrate run
 
 >&2 echo "Postgres has been migrated, ready to go!"
+
+
+unset SQLX_OFFLINE
