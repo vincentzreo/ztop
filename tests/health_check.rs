@@ -1,11 +1,26 @@
 use std::net::TcpListener;
 
+use secrecy::{ExposeSecret, SecretString};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
+use std::sync::LazyLock;
 use uuid::Uuid;
 use zero2prod::{
     configuration::{get_configuration, DatabaseSettings},
-    run,
+    startup::run,
+    telemetry::{get_subscriber, init_subscriber},
 };
+
+static TRACING: LazyLock<()> = LazyLock::new(|| {
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber(subscriber);
+    }
+});
 
 pub struct TestApp {
     pub address: String,
@@ -13,6 +28,7 @@ pub struct TestApp {
 }
 
 async fn spawn_app() -> TestApp {
+    LazyLock::force(&TRACING);
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
@@ -32,13 +48,14 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
     let maintenance_settings = DatabaseSettings {
         database_name: "postgres".into(),
         username: "postgres".into(),
-        password: "password".into(),
+        password: SecretString::from("password".to_string()),
         ..config.clone()
     };
 
-    let mut connection = PgConnection::connect(&maintenance_settings.connect_string())
-        .await
-        .expect("Failed to connect to Postgres.");
+    let mut connection =
+        PgConnection::connect(&maintenance_settings.connect_string().expose_secret())
+            .await
+            .expect("Failed to connect to Postgres.");
 
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
@@ -48,11 +65,11 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
     // 因为pg15对public数据库的权限做了限制，所以使用管理员权限创建表并完成后续测试操作
     let new_config = DatabaseSettings {
         username: "postgres".into(),
-        password: "password".into(),
+        password: SecretString::from("password".to_string()),
         ..config.clone()
     };
     // migrate the database
-    let connection_pool = PgPool::connect(&new_config.connect_string())
+    let connection_pool = PgPool::connect(&new_config.connect_string().expose_secret())
         .await
         .expect("Failed to connect to Postgres.");
 
@@ -84,11 +101,7 @@ async fn health_check_works() {
 #[tokio::test]
 async fn subscribe_return_a_200_for_valid_form_data() {
     let app = spawn_app().await;
-    let config = get_configuration().expect("Failed to read configuration.");
-    let connect_string = config.database.connect_string();
-    let mut _connection = sqlx::PgConnection::connect(&connect_string)
-        .await
-        .expect("Failed to connect to Postgres.");
+
     let client = reqwest::Client::new();
 
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
